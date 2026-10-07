@@ -4,12 +4,17 @@ import { useState } from "react";
 
 const Home = () => {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
-  const { data, loading, error, reFetch } = useFetch("/products", {
-    products: [],
-  });
+  const { data, loading, error, reFetch } = useFetch(
+    `/products?page=${page}&limit=6`,
+    {
+      products: [],
+    },
+  );
 
   const products = data.products;
+  const totalpages = data.totalpages;
 
   const filterProducts = products.filter((p) =>
     p.title.toLowerCase().includes(search.toLowerCase()),
@@ -71,6 +76,27 @@ const Home = () => {
           ))}
         </div>
       )}
+      <div className="mt-8 flex items-center justify-center gap-4">
+        <button
+          onClick={() => setPage(page - 1)}
+          disabled={page === 1}
+          className="rounded bg-gray-700 px-4 py-2 disabled:opacity-40"
+        >
+          Previous
+        </button>
+
+        <span>
+          Page {page} of {totalpages}
+        </span>
+
+        <button
+          onClick={() => setPage(page + 1)}
+          disabled={page === totalpages}
+          className="rounded bg-gray-700 px-4 py-2 disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };

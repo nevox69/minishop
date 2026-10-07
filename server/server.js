@@ -7,6 +7,7 @@ const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 
 const app = express();
+
 app.use(express.json());
 app.use(cors());
 
@@ -23,5 +24,20 @@ app.use("/api/users", userRoutes);
 
 app.use("/api/products", productRoutes);
 
+// GLOBAL ERROR HANDLER
+app.use((err, req, res, next) => {
+  console.error("🔥 GLOBAL ERROR:", err);
+
+  res.status(err.status || 500).json({
+    message: err.message,
+  });
+});
+
+// Old local uploads serving
+app.use("/uploads", express.static("uploads"));
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

@@ -1,65 +1,123 @@
 const express = require("express");
 const Protected = require("../middleware/authmiddleware");
+const upload = require("../middleware/upload");
 
 require("dotenv").config();
 
 const ProductModel = require("../models/Products");
+
 const router = express.Router();
 
-// POST / → create product, set user: req.userId (not from req.body — ignore whatever the frontend sends for this field, even if it does)
+
+// GET PRODUCTS
 router.get("/", async (req, res) => {
   try {
-    const products = await ProductModel.find();
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 6;
+    const skip = (page - 1) * limit;
 
-    if (products.length === 0) {
-      return res
-        .status(200)
-        .json({ message: "No product found, Insert New One" });
-    }
-    res.status(200).json({ products, message: "All Producted are listed" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+    const products = await ProductModel.find()
+      .skip(skip)
+      .limit(limit);
 
-// GET / → return ALL products (this is public browsing — every logged-in user should see everyone's products, unlike your old per-user Users list)
+    const total = await ProductModel.countDocuments();
+    const totalPages = Math.ceil(total / limit);
 
-router.post("/", Protected, async (req, res) => {
-  try {
-    const newProduct = await ProductModel.create({
-      title: req.body.title,
-      price: req.body.price,
-      description: req.body.description,
-      image: req.body.image,
-      category: req.body.category,
-      user: req.userId,
+    res.status(200).json({
+      products,
+      page,
+      limit,
+      totalPages,
+      message:
+        products.length === 0
+          ? "No Products Found"
+          : "All Products Listed",
     });
-    res
-      .status(201)
-      .json({ product: newProduct, message: "Successfully created" });
+
   } catch (err) {
-    res.status(500).json({ message: "Error to create the Product" });
+    console.log("GET PRODUCT ERROR:", err);
+
+    res.status(500).json({
+      message: err.message,
+    });
   }
 });
 
-// PUT /:id → before updating, fetch the product first, check if (product.user.toString() !== req.userId) → if mismatched, 403 Forbidden (not 401 — think about the difference: 401 means "you're not authenticated," 403 means "you ARE authenticated, but you're not allowed to do this specific thing")
 
+// CREATE PRODUCT + CLOUDINARY IMAGE
+router.post(
+  "/",
+  Protected,
+  upload.single("image"),
+  async (req, res) => {
+
+    // IMPORTANT:
+    // If this doesn't appear in terminal,
+    // Multer/Cloudinary failed before reaching this handler.
+    console.log("🔥 POST PRODUCT ROUTE HIT");
+
+    try {
+
+      console.log("REQ.FILE:", req.file);
+      console.log("REQ.BODY:", req.body);
+
+      // Check image
+      if (!req.file) {
+        return res.status(400).json({
+          message: "Image is required",
+        });
+      }
+
+      const newProduct = await ProductModel.create({
+        title: req.body.title,
+        price: req.body.price,
+        description: req.body.description,
+
+        // Cloudinary URL
+        image: req.file.path,
+
+        category: req.body.category,
+
+        // From JWT middleware
+        user: req.userId,
+      });
+
+      console.log("✅ PRODUCT CREATED:", newProduct);
+
+      res.status(201).json({
+        product: newProduct,
+        message: "Successfully created",
+      });
+
+    } catch (err) {
+
+      console.log("🔥 PRODUCT ERROR:", err);
+
+      res.status(500).json({
+        message: err.message,
+      });
+    }
+  }
+);
+
+
+// UPDATE PRODUCT
 router.put("/:id", Protected, async (req, res) => {
   try {
+
     const product = await ProductModel.findById(req.params.id);
 
     if (!product) {
-      return res.status(404).json({ message: "Couldn't Find the Product" });
+      return res.status(404).json({
+        message: "Couldn't Find the Product",
+      });
     }
 
     if (product.user.toString() !== req.userId) {
-      return res
-        .status(403)
-        .json({ message: "You can't bring changes in this Product" });
+      return res.status(403).json({
+        message: "You can't bring changes in this Product",
+      });
     }
-
-    // EDIT / UPDATE HERE
-    //  instead (  const updatedProduct = await ProductModel.findByIdAndUpdate()   you can do this
 
     product.title = req.body.title;
     product.price = req.body.price;
@@ -70,35 +128,51 @@ router.put("/:id", Protected, async (req, res) => {
     const updatedProduct = await product.save();
 
     res.status(200).json(updatedProduct);
+
   } catch (err) {
+
+    console.log("UPDATE PRODUCT ERROR:", err);
+
     res.status(500).json({
       message: err.message,
     });
   }
 });
 
+
+// DELETE PRODUCT
 router.delete("/:id", Protected, async (req, res) => {
   try {
+
     const product = await ProductModel.findById(req.params.id);
 
     if (!product) {
-      return res.status(404).json({ message: "Couldn't Find the Product" });
+      return res.status(404).json({
+        message: "Couldn't Find the Product",
+      });
     }
 
     if (product.user.toString() !== req.userId) {
-      return res
-        .status(403)
-        .json({ message: "You can't bring changes in this Product" });
+      return res.status(403).json({
+        message: "You can't delete this Product",
+      });
     }
 
-    const deletedProduct = await ProductModel.findByIdAndDelete(req.params.id);
+    await ProductModel.findByIdAndDelete(req.params.id);
 
-    res.status(200).json({ message: "Successfully Delted" });
+    res.status(200).json({
+      message: "Successfully Deleted",
+    });
+
   } catch (err) {
+
+    console.log("DELETE PRODUCT ERROR:", err);
+
     res.status(500).json({
       message: err.message,
     });
   }
 });
+
 
 module.exports = router;

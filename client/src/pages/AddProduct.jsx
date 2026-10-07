@@ -6,7 +6,7 @@ const AddProduct = () => {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
-  const [image, setImage] = useState("");
+  const [image, setImage] = useState(null);
   const [category, setCategory] = useState("");
 
   const navigate = useNavigate();
@@ -14,28 +14,39 @@ const AddProduct = () => {
   const formHandler = async (e) => {
     e.preventDefault();
 
+    const formData = new FormData();
+
+    formData.append("title", title);
+    formData.append("price", price);
+    formData.append("description", description);
+    formData.append("image", image);
+    formData.append("category", category);
+
     try {
-      const response = await api.post("/products", {
-        title,
-        price,
-        description,
-        image,
-        category,
+      console.log("📤 SENDING FORM DATA");
+
+      const response = await api.post("/products", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
-      console.log(response);
+      console.log("✅ SERVER RESPONSE:", response.data);
 
       setTitle("");
       setPrice("");
       setDescription("");
-      setImage("");
+      setImage(null);
       setCategory("");
 
       navigate("/");
     } catch (err) {
-      console.log(err.response?.data?.message);
+      console.log("🔥 FRONTEND ERROR:", err);
+      console.log("STATUS:", err.response?.status);
+      console.log("SERVER MESSAGE:", err.response?.data);
     }
   };
+
   return (
     <div className="min-h-screen flex justify-center items-center bg-gray-100">
       <form
@@ -44,8 +55,10 @@ const AddProduct = () => {
       >
         <h1 className="text-2xl font-bold text-center mb-6">Add Product</h1>
 
+        {/* TITLE */}
         <div className="mb-4">
           <label className="block mb-2">Title</label>
+
           <input
             type="text"
             placeholder="Enter product title"
@@ -57,8 +70,10 @@ const AddProduct = () => {
           />
         </div>
 
+        {/* PRICE */}
         <div className="mb-4">
           <label className="block mb-2">Price</label>
+
           <input
             type="number"
             placeholder="Enter product price"
@@ -70,8 +85,10 @@ const AddProduct = () => {
           />
         </div>
 
+        {/* DESCRIPTION */}
         <div className="mb-4">
           <label className="block mb-2">Description</label>
+
           <textarea
             placeholder="Enter product description"
             className="w-full border border-gray-300 p-2 rounded"
@@ -79,24 +96,26 @@ const AddProduct = () => {
             onChange={(e) => {
               setDescription(e.target.value);
             }}
-          ></textarea>
+          />
         </div>
 
+        {/* IMAGE */}
         <div className="mb-4">
           <label className="block mb-2">Image</label>
+
           <input
-            type="text"
-            placeholder="Enter image URL"
-            className="w-full border border-gray-300 p-2 rounded"
-            value={image}
+            type="file"
+            accept="image/*"
             onChange={(e) => {
-              setImage(e.target.value);
+              setImage(e.target.files[0]);
             }}
           />
         </div>
 
+        {/* CATEGORY */}
         <div className="mb-6">
           <label className="block mb-2">Category</label>
+
           <input
             type="text"
             placeholder="Enter product category"
