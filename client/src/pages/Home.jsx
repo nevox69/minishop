@@ -14,42 +14,20 @@ const Home = () => {
   );
 
   const products = data.products;
-  const totalpages = data.totalpages;
+  const totalPages = data.totalPages;
 
   const filterProducts = products.filter((p) =>
     p.title.toLowerCase().includes(search.toLowerCase()),
   );
 
-  // it basically
-  //   (p) => {
-  //   return p.title.toLowerCase().includes(search.toLowerCase());
-  // }
-
-  // const loadProduct = async () => {
-  //   try {
-  //     const response = await api.get("/products");
-  //     console.log(response.data);
-
-  //     if (response.data.products) {
-  //       setProducts(response.data.products);
-  //     } else {
-  //       setProducts([]);
-  //     }
-  //   } catch (err) {
-  //     console.log(err.response?.data?.message);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   loadProduct();
-  // }, []);
-
   if (loading) {
     return <p>Loading .............</p>;
   }
+
   if (error) {
     return <p>something went wrong.</p>;
   }
+
   return (
     <div className="min-h-screen bg-gray-950 text-white p-8">
       <input
@@ -76,6 +54,7 @@ const Home = () => {
           ))}
         </div>
       )}
+
       <div className="mt-8 flex items-center justify-center gap-4">
         <button
           onClick={() => setPage(page - 1)}
@@ -86,12 +65,12 @@ const Home = () => {
         </button>
 
         <span>
-          Page {page} of {totalpages}
+          Page {page} of {totalPages}
         </span>
 
         <button
           onClick={() => setPage(page + 1)}
-          disabled={page === totalpages}
+          disabled={page === totalPages}
           className="rounded bg-gray-700 px-4 py-2 disabled:opacity-40"
         >
           Next
